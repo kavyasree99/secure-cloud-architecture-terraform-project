@@ -121,7 +121,10 @@ variable "health_check_path" {
 variable "db_engine_version" {
   description = "PostgreSQL engine version"
   type        = string
-  default     = "16.4"
+  # Latest 16.x available in eu-central-1 as of writing (confirmed via
+  # `aws rds describe-db-engine-versions --engine postgres --region
+  # eu-central-1`); 16.4 was requested but is no longer offered there.
+  default = "16.14"
 }
 
 variable "db_instance_class" {
