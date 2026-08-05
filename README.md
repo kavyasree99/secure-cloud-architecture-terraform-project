@@ -22,53 +22,7 @@ plus the actual application code those two services run, in
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    Internet((Internet))
-
-    subgraph VPC["VPC 10.0.0.0/16"]
-        subgraph Public["Public subnets (2 AZs)"]
-            ALB["Application Load Balancer"]
-            NAT["NAT Gateway"]
-        end
-
-        subgraph Private["Private app subnets (2 AZs)"]
-            API["ECS Fargate: API service\n(SG: ingress from ALB only)"]
-            Worker["ECS Fargate: Worker service\n(SG: no ingress at all)"]
-        end
-
-        subgraph DataTier["Private database subnets (2 AZs)"]
-            RDS[("RDS PostgreSQL")]
-        end
-    end
-
-    ECR_API["ECR: api repo"]
-    ECR_WORKER["ECR: worker repo"]
-    SM["Secrets Manager\n(DB credentials)"]
-    SQS["SQS Queue + DLQ"]
-    S3[("S3 Bucket")]
-    CW["CloudWatch Logs"]
-
-    Internet -->|HTTP/HTTPS| ALB
-    ALB -->|:8080| API
-    API -->|:5432| RDS
-    API -->|send only| SQS
-    API -->|get/put objects| S3
-    API -->|pull image| ECR_API
-    API -->|resolve secrets| SM
-    API -->|logs| CW
-
-    Worker -->|:5432| RDS
-    Worker -->|receive/delete| SQS
-    Worker -->|get/put/delete objects| S3
-    Worker -->|pull image| ECR_WORKER
-    Worker -->|resolve secrets| SM
-    Worker -->|logs| CW
-
-    API -->|egress via| NAT
-    Worker -->|egress via| NAT
-    NAT --> Internet
-```
+![Architecture diagram](architecture-diagram.png)
 
 **Traffic flow:** Internet → ALB (public subnets) → **API** ECS Fargate
 tasks (private app subnets, `awsvpc` networking) → RDS (private database
