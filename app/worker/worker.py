@@ -8,7 +8,7 @@ import psycopg2
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("worker")
 
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+AWS_REGION = os.environ.get("AWS_REGION", "eu-central-1")
 SQS_QUEUE_URL = os.environ["APP_SQS_QUEUE_URL"]
 
 DB_HOST = os.environ["DB_HOST"]

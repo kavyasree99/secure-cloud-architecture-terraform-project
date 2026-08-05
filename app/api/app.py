@@ -12,7 +12,7 @@ logger = logging.getLogger("api")
 
 app = Flask(__name__)
 
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+AWS_REGION = os.environ.get("AWS_REGION", "eu-central-1")
 SQS_QUEUE_URL = os.environ["APP_SQS_QUEUE_URL"]
 
 DB_HOST = os.environ["DB_HOST"]

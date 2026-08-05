@@ -53,8 +53,8 @@ cd app/api
 python -m venv .venv && . .venv/Scripts/activate   # or source .venv/bin/activate on macOS/Linux
 pip install -r requirements.txt
 
-export AWS_REGION=us-east-1
-export APP_SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account-id>/<queue-name>
+export AWS_REGION=eu-central-1
+export APP_SQS_QUEUE_URL=https://sqs.eu-central-1.amazonaws.com/<account-id>/<queue-name>
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_NAME=appdb
@@ -87,8 +87,8 @@ cd app/worker
 python -m venv .venv && . .venv/Scripts/activate
 pip install -r requirements.txt
 
-export AWS_REGION=us-east-1
-export APP_SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account-id>/<queue-name>
+export AWS_REGION=eu-central-1
+export APP_SQS_QUEUE_URL=https://sqs.eu-central-1.amazonaws.com/<account-id>/<queue-name>
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_NAME=appdb
