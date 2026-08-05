@@ -127,67 +127,6 @@ task is down (jobs simply queue up in SQS), and the worker never needs an
 open inbound port, so it was never reachable from the internet even before
 considering IAM.
 
-## Prerequisites
-
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
-- An AWS account and credentials configured (e.g. via `aws configure`,
-  environment variables, or an SSO profile) with permissions to create the
-  resources above
-- (Optional) Docker, if you intend to build and push the real application
-  images in `app/` to the ECR repositories this creates
-
-This code was written and validated with Terraform v1.13.0. No AWS
-credentials are required to run `terraform fmt` or `terraform validate`;
-credentials are only needed for `terraform plan`/`apply`. All Terraform
-commands below are run from inside `infra/`.
-
-## Usage
-
-```bash
-cd infra
-
-# Review/adjust variables (region, sizing, CIDRs, etc.)
-cp terraform.tfvars.example terraform.tfvars
-
-terraform init
-terraform fmt -check -recursive
-terraform validate
-terraform plan
-terraform apply
-```
-
-By default both ECS services run public placeholder images (`api_image` =
-`public.ecr.aws/nginx/nginx:latest`, `worker_image` =
-`public.ecr.aws/docker/library/busybox:latest`) so the stack is deployable
-end-to-end without building anything first. To run the real app code in
-`app/` instead:
-
-```bash
-# From the repo root, after `terraform apply` (run from infra/) has
-# created the ECR repos:
-aws ecr get-login-password --region <region> | \
-  docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
-
-docker build -t <ecr_api_repository_url>:latest ./app/api
-docker push <ecr_api_repository_url>:latest
-
-docker build -t <ecr_worker_repository_url>:latest ./app/worker
-docker push <ecr_worker_repository_url>:latest
-
-# Then set api_image = "<ecr_api_repository_url>:latest" and
-# worker_image = "<ecr_worker_repository_url>:latest" in
-# infra/terraform.tfvars and re-apply (from infra/).
-```
-
-See [`app/README.md`](app/README.md) for what each service does, what
-environment variables it expects, and how to run it outside of ECS for
-local testing.
-
-Grab the load balancer URL from the outputs (from `infra/`):
-
-```bash
-terraform output alb_dns_name
-```
 
 ## Deploying new container versions, and rolling back
 
@@ -225,18 +164,6 @@ service don't drift apart.
 > the console — so the fix stayed reproducible instead of silently
 > diverging from what Terraform thought was deployed.
 
-## Cleanup
-
-```bash
-cd infra
-terraform destroy
-```
-
-RDS is created with `skip_final_snapshot = true` by default (see
-`db_skip_final_snapshot` in `infra/variables.tf`) so `destroy` doesn't hang
-waiting on a snapshot; flip that to `false` for anything beyond a throwaway
-environment.
-
 ## Troubleshooting: API works, but the worker isn't processing jobs
 
 Three checks, roughly in the order that separates the most likely causes
@@ -266,80 +193,7 @@ fastest:
    shows up only in the worker's CloudWatch logs, not as anything visible
    from the queue side.
 
-> **Real example:** the health-check misconfiguration described in the
-> section above was diagnosed in exactly this order — CloudWatch logs
-> first (the api service's log group showed it visibly cycling between
-> gunicorn coming up and nginx coming back, i.e. ECS repeatedly rolling
-> back), *then* `aws elbv2 describe-target-groups` to confirm the live
-> `HealthCheckPath` was still `/`, confirming the cause before touching any
-> configuration. The same order — logs, then AWS CLI state, then a
-> Terraform-driven fix — applies to any "looks fine on one side but not the
-> other" symptom like this one.
 
-## Notable design decisions / trade-offs
 
-- **Single shared NAT Gateway by default** (`single_nat_gateway = true`) to
-  keep cost down for a take-home exercise; set it to `false` for one NAT
-  Gateway per AZ in a real HA deployment.
-- **HTTP-only ALB listener.** No ACM certificate/domain was provided, so
-  there's no HTTPS listener. Adding one is a matter of an
-  `aws_acm_certificate` (or importing an existing cert) plus a 443
-  `aws_lb_listener` and redirecting 80 → 443.
-- **RDS credentials** are generated, not hand-typed, and never sit in
-  plaintext environment variables — see "How containers receive secrets
-  securely" above for the full mechanism.
-- **Root module, flat files** (`infra/vpc.tf`, `infra/ecs.tf`,
-  `infra/rds.tf`, etc.) rather than child modules — appropriate for a
-  single-environment take-home; a multi-environment setup would extract
-  these into reusable modules under `infra/modules/`.
-- **Fargate tasks have no public IP** and reach ECR/Secrets
-  Manager/CloudWatch through the NAT Gateway; VPC endpoints would remove
-  that NAT dependency for AWS API traffic in a cost- or latency-sensitive
-  production setup.
-- **API and worker are separate ECS services, each with its own security
-  group and IAM task role**, rather than one service doing both jobs. The
-  worker's security group has no ingress rules at all — it isn't attached
-  to any ALB target group, so there is no network path into it from the
-  ALB, the internet, or even the API service. Splitting the IAM task roles
-  means a compromised API container can enqueue work but can't drain or
-  delete queue messages, and a compromised worker container was never
-  reachable from the internet in the first place.
-- **A shared ECS task execution role** (image pull, log write, DB-secret
-  read) is used by both task definitions, since that role only grants
-  ECS-agent-level permissions, not application permissions — the
-  security-relevant split is at the task role level, which is where each
-  service's actual AWS API access is scoped.
 
-## Repo layout
-
-```
-.
-├── infra/                       # Terraform root module
-│   ├── versions.tf              # Terraform + provider version constraints
-│   ├── variables.tf             # Input variables
-│   ├── vpc.tf                   # VPC, subnets, routing, security groups
-│   ├── alb.tf                   # Application Load Balancer (API target group + listener)
-│   ├── ecr.tf                   # ECR repositories (api, worker)
-│   ├── ecs.tf                   # ECS cluster + api/worker task definitions and services
-│   ├── rds.tf                   # RDS PostgreSQL instance
-│   ├── sqs.tf                   # SQS queue + DLQ
-│   ├── s3.tf                    # S3 bucket
-│   ├── secrets.tf               # Secrets Manager secret + generated password
-│   ├── iam.tf                   # IAM roles/policies for ECS tasks (shared execution role, api/worker task roles)
-│   ├── outputs.tf                # Output values
-│   ├── terraform.tfvars.example  # Example variable values
-│   └── .terraform.lock.hcl       # Provider version lock (committed)
-├── app/                          # Application source
-│   ├── api/                      # Flask API: POST /jobs, GET /health
-│   │   ├── app.py
-│   │   ├── requirements.txt
-│   │   └── Dockerfile
-│   ├── worker/                   # SQS-polling background worker
-│   │   ├── worker.py
-│   │   ├── requirements.txt
-│   │   └── Dockerfile
-│   └── README.md                 # Build/run instructions, env var reference
-├── docs/
-│   └── genai-usage.md            # GenAI usage log: prompts + rationale
-└── README.md
 ```
