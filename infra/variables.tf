@@ -67,15 +67,21 @@ variable "container_port" {
 }
 
 variable "api_image" {
-  description = "Container image for the public API service. Defaults to a public placeholder; point this at the api ECR repo URI once you've pushed a real image."
+  description = "Container image for the public API service. Defaults to a pinned public placeholder; point this at the api ECR repo URI (with its own version tag) once you've pushed a real image."
   type        = string
-  default     = "public.ecr.aws/nginx/nginx:latest"
+  # Placeholder only, pinned to a specific version rather than `:latest` so
+  # deploys are reproducible. Replace with the api ECR repo URI + a real
+  # version tag once app/api has been built and pushed.
+  default = "public.ecr.aws/nginx/nginx:1.30.4"
 }
 
 variable "worker_image" {
-  description = "Container image for the background worker service. Defaults to a public placeholder; point this at the worker ECR repo URI once you've pushed a real image."
+  description = "Container image for the background worker service. Defaults to a pinned public placeholder; point this at the worker ECR repo URI (with its own version tag) once you've pushed a real image."
   type        = string
-  default     = "public.ecr.aws/docker/library/busybox:latest"
+  # Placeholder only, pinned to a specific version rather than `:latest` so
+  # deploys are reproducible. Replace with the worker ECR repo URI + a real
+  # version tag once app/worker has been built and pushed.
+  default = "public.ecr.aws/docker/library/busybox:1.37.0"
 }
 
 variable "task_cpu" {
