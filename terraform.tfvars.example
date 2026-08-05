@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and adjust as needed.
+
+aws_region   = "us-east-1"
+project_name = "devops-assignment"
+environment  = "dev"
+
+availability_zones    = ["us-east-1a", "us-east-1b"]
+vpc_cidr              = "10.0.0.0/16"
+public_subnet_cidrs   = ["10.0.0.0/24", "10.0.1.0/24"]
+private_subnet_cidrs  = ["10.0.10.0/24", "10.0.11.0/24"]
+database_subnet_cidrs = ["10.0.20.0/24", "10.0.21.0/24"]
+
+container_port = 8080
+# Point this at the ECR repo output (ecr_repository_url) once you've built
+# and pushed a real application image.
+app_image     = "public.ecr.aws/nginx/nginx:latest"
+desired_count = 2
+
+db_instance_class = "db.t3.micro"
+db_name           = "appdb"
+db_username       = "app_admin"
