@@ -111,7 +111,7 @@ variable "worker_desired_count" {
 variable "health_check_path" {
   description = "HTTP path the ALB target group uses for health checks against the API service"
   type        = string
-  default     = "/"
+  default     = "/health"
 }
 
 # ---------------------------------------------------------------------------
