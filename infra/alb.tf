@@ -10,8 +10,8 @@ resource "aws_lb" "main" {
   }
 }
 
-resource "aws_lb_target_group" "app" {
-  name        = "${local.name}-tg"
+resource "aws_lb_target_group" "api" {
+  name        = "${local.name}-api-tg"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -28,7 +28,7 @@ resource "aws_lb_target_group" "app" {
   }
 
   tags = {
-    Name = "${local.name}-tg"
+    Name = "${local.name}-api-tg"
   }
 }
 
@@ -39,6 +39,6 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+    target_group_arn = aws_lb_target_group.api.arn
   }
 }

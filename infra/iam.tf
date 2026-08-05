@@ -43,23 +43,71 @@ resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
 }
 
 # ---------------------------------------------------------------------------
-# Task role: used by the application code itself for AWS API access.
+# API task role: used by the public-facing API service. It enqueues jobs
+# for the worker to pick up but does not consume the queue itself, and
+# handles user-facing object uploads/downloads.
 # ---------------------------------------------------------------------------
 
-resource "aws_iam_role" "ecs_task" {
-  name               = "${local.name}-ecs-task"
+resource "aws_iam_role" "ecs_task_api" {
+  name               = "${local.name}-ecs-task-api"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
 
   tags = {
-    Name = "${local.name}-ecs-task"
+    Name = "${local.name}-ecs-task-api"
   }
 }
 
-data "aws_iam_policy_document" "ecs_task_app" {
+data "aws_iam_policy_document" "ecs_task_api" {
   statement {
-    sid = "SqsAccess"
+    sid = "SqsEnqueueOnly"
     actions = [
       "sqs:SendMessage",
+      "sqs:GetQueueUrl",
+      "sqs:GetQueueAttributes",
+    ]
+    resources = [aws_sqs_queue.app.arn]
+  }
+
+  statement {
+    sid = "S3Access"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:ListBucket",
+    ]
+    resources = [
+      aws_s3_bucket.app.arn,
+      "${aws_s3_bucket.app.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_task_api" {
+  name   = "${local.name}-ecs-task-api"
+  role   = aws_iam_role.ecs_task_api.id
+  policy = data.aws_iam_policy_document.ecs_task_api.json
+}
+
+# ---------------------------------------------------------------------------
+# Worker task role: used by the private background worker service. It
+# consumes and deletes messages from the queue (including the DLQ, for
+# inspection/reprocessing) and does the S3 read/write/delete work of
+# actually processing a job.
+# ---------------------------------------------------------------------------
+
+resource "aws_iam_role" "ecs_task_worker" {
+  name               = "${local.name}-ecs-task-worker"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+
+  tags = {
+    Name = "${local.name}-ecs-task-worker"
+  }
+}
+
+data "aws_iam_policy_document" "ecs_task_worker" {
+  statement {
+    sid = "SqsConsume"
+    actions = [
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
       "sqs:GetQueueAttributes",
@@ -86,8 +134,8 @@ data "aws_iam_policy_document" "ecs_task_app" {
   }
 }
 
-resource "aws_iam_role_policy" "ecs_task_app" {
-  name   = "${local.name}-ecs-task-app"
-  role   = aws_iam_role.ecs_task.id
-  policy = data.aws_iam_policy_document.ecs_task_app.json
+resource "aws_iam_role_policy" "ecs_task_worker" {
+  name   = "${local.name}-ecs-task-worker"
+  role   = aws_iam_role.ecs_task_worker.id
+  policy = data.aws_iam_policy_document.ecs_task_worker.json
 }

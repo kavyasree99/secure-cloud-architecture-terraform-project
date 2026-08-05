@@ -61,37 +61,49 @@ variable "single_nat_gateway" {
 # ---------------------------------------------------------------------------
 
 variable "container_port" {
-  description = "Port the application container listens on"
+  description = "Port the API container listens on"
   type        = number
   default     = 8080
 }
 
-variable "app_image" {
-  description = "Container image to run. Defaults to a public placeholder; point this at the ECR repo URI once you've pushed a real image."
+variable "api_image" {
+  description = "Container image for the public API service. Defaults to a public placeholder; point this at the api ECR repo URI once you've pushed a real image."
   type        = string
   default     = "public.ecr.aws/nginx/nginx:latest"
 }
 
+variable "worker_image" {
+  description = "Container image for the background worker service. Defaults to a public placeholder; point this at the worker ECR repo URI once you've pushed a real image."
+  type        = string
+  default     = "public.ecr.aws/docker/library/busybox:latest"
+}
+
 variable "task_cpu" {
-  description = "Fargate task CPU units"
+  description = "Fargate task CPU units, used by both the api and worker task definitions"
   type        = number
   default     = 256
 }
 
 variable "task_memory" {
-  description = "Fargate task memory (MiB)"
+  description = "Fargate task memory (MiB), used by both the api and worker task definitions"
   type        = number
   default     = 512
 }
 
-variable "desired_count" {
-  description = "Number of ECS tasks to run"
+variable "api_desired_count" {
+  description = "Number of API service tasks to run"
   type        = number
   default     = 2
 }
 
+variable "worker_desired_count" {
+  description = "Number of worker service tasks to run"
+  type        = number
+  default     = 1
+}
+
 variable "health_check_path" {
-  description = "HTTP path the ALB target group uses for health checks"
+  description = "HTTP path the ALB target group uses for health checks against the API service"
   type        = string
   default     = "/"
 }

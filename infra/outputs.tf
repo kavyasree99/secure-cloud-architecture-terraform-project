@@ -3,9 +3,14 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
-output "ecr_repository_url" {
-  description = "URL of the ECR repository to push application images to"
-  value       = aws_ecr_repository.app.repository_url
+output "ecr_api_repository_url" {
+  description = "URL of the ECR repository to push API images to"
+  value       = aws_ecr_repository.api.repository_url
+}
+
+output "ecr_worker_repository_url" {
+  description = "URL of the ECR repository to push worker images to"
+  value       = aws_ecr_repository.worker.repository_url
 }
 
 output "ecs_cluster_name" {
@@ -13,9 +18,14 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name
 }
 
-output "ecs_service_name" {
-  description = "Name of the ECS service"
-  value       = aws_ecs_service.app.name
+output "ecs_api_service_name" {
+  description = "Name of the public API ECS service"
+  value       = aws_ecs_service.api.name
+}
+
+output "ecs_worker_service_name" {
+  description = "Name of the private background worker ECS service"
+  value       = aws_ecs_service.worker.name
 }
 
 output "rds_endpoint" {

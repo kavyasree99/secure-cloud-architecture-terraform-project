@@ -180,9 +180,9 @@ resource "aws_security_group" "alb" {
   }
 }
 
-resource "aws_security_group" "ecs_service" {
-  name        = "${local.name}-ecs-sg"
-  description = "Allow inbound traffic from the ALB only"
+resource "aws_security_group" "ecs_api" {
+  name        = "${local.name}-ecs-api-sg"
+  description = "API service: allow inbound traffic from the ALB only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -201,21 +201,46 @@ resource "aws_security_group" "ecs_service" {
   }
 
   tags = {
-    Name = "${local.name}-ecs-sg"
+    Name = "${local.name}-ecs-api-sg"
+  }
+}
+
+resource "aws_security_group" "ecs_worker" {
+  name        = "${local.name}-ecs-worker-sg"
+  description = "Worker service: no inbound traffic, not reachable from the ALB or the internet"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.name}-ecs-worker-sg"
   }
 }
 
 resource "aws_security_group" "rds" {
   name        = "${local.name}-rds-sg"
-  description = "Allow inbound Postgres traffic from ECS tasks only"
+  description = "Allow inbound Postgres traffic from the api and worker ECS tasks only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description     = "Postgres from ECS tasks"
+    description     = "Postgres from API tasks"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_service.id]
+    security_groups = [aws_security_group.ecs_api.id]
+  }
+
+  ingress {
+    description     = "Postgres from worker tasks"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_worker.id]
   }
 
   egress {

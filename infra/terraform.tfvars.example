@@ -11,10 +11,12 @@ private_subnet_cidrs  = ["10.0.10.0/24", "10.0.11.0/24"]
 database_subnet_cidrs = ["10.0.20.0/24", "10.0.21.0/24"]
 
 container_port = 8080
-# Point this at the ECR repo output (ecr_repository_url) once you've built
-# and pushed a real application image.
-app_image     = "public.ecr.aws/nginx/nginx:latest"
-desired_count = 2
+# Point these at the ECR repo outputs (ecr_api_repository_url /
+# ecr_worker_repository_url) once you've built and pushed real images.
+api_image             = "public.ecr.aws/nginx/nginx:latest"
+worker_image          = "public.ecr.aws/docker/library/busybox:latest"
+api_desired_count     = 2
+worker_desired_count  = 1
 
 db_instance_class = "db.t3.micro"
 db_name           = "appdb"
