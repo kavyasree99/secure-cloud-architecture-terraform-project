@@ -15,8 +15,8 @@ health_check_path  = "/health" # matches GET /health in app/api/app.py
 # Pinned placeholders, not real app images. Point these at the ECR repo
 # outputs (ecr_api_repository_url / ecr_worker_repository_url) with your
 # own version tag once you've built and pushed real images.
-api_image            = "public.ecr.aws/nginx/nginx:1.30.4"
-worker_image         = "public.ecr.aws/docker/library/busybox:1.37.0"
+api_image            = "124355677006.dkr.ecr.eu-central-1.amazonaws.com/devops-assignment-dev-api:v0.1.0"
+worker_image         = "124355677006.dkr.ecr.eu-central-1.amazonaws.com/devops-assignment-dev-worker:v0.1.0"
 api_desired_count    = 2
 worker_desired_count = 1
 
