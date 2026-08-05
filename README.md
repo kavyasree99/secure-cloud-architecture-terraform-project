@@ -193,7 +193,7 @@ fastest:
    shows up only in the worker's CloudWatch logs, not as anything visible
    from the queue side.
 
+## GPU Interface
+   Scaling a GPU service to zero comes down to one idea: don't run it as a normal "always-on" ECS service — instead set its minimum task count to 0, and let ECS Application Auto Scaling watch a queue (SQS) for how many jobs are waiting. When a job shows up, auto scaling spins up a GPU task to handle it; when the queue's been empty for a bit, it scales back down to zero so you stop paying for idle GPU time. The only real cost of this is a "cold start" delay on the very first request after being idle, since a fresh GPU container has to boot up before it can respond.
 
-
-
-```
+   ...
